@@ -1,0 +1,9 @@
+{
+  "name": "PX → DP Annotator",
+  "id": "px-to-dp-annotator",
+  "api": "1.0.0",
+  "main": "dist/main.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma", "figjam"],
+  "relaunchButtons": [{ "command": "run", "name": "PX→DP 변환" }]
+}

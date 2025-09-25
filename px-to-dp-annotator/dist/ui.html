@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-size: 13px;
+      padding: 16px;
+      margin: 0;
+      background-color: #f8f9fa;
+      color: #212529;
+    }
+    .container > div {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    label {
+      margin-right: 8px;
+      color: #495057;
+    }
+    select, input[type="number"] {
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ced4da;
+      background-color: #fff;
+      width: 140px;
+      box-sizing: border-box;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
+    }
+    .button-group {
+      margin-top: 20px;
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      flex-grow: 1;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+    button#run {
+      background-color: #0d6efd;
+      color: white;
+    }
+    button#run:hover {
+      background-color: #0b5ed7;
+    }
+    button#clean {
+      background-color: #f8f9fa;
+      color: #495057;
+      border: 1px solid #ced4da;
+    }
+    button#clean:hover {
+      background-color: #e9ecef;
+    }
+    #log {
+      margin-top: 16px;
+      white-space: pre-wrap;
+      background-color: #e9ecef;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      min-height: 1.5em;
+      word-break: break-all;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <label for="dpiSel">밀도(DPI)</label>
+      <select id="dpiSel">
+        <option value="120">ldpi (~120)</option>
+        <option value="160">mdpi (~160)</option>
+        <option value="213">tvdpi (~213)</option>
+        <option value="240" selected>hdpi (~240)</option>
+        <option value="320">xhdpi (~320)</option>
+        <option value="480">xxhdpi (~480)</option>
+        <option value="640">xxxhdpi (~640)</option>
+        <option value="custom">Custom dpi</option>
+      </select>
+    </div>
+    <div id="customDpiWrapper" style="display: none;">
+        <label for="customDpi">Custom DPI</label>
+        <input id="customDpi" type="number" placeholder="e.g. 400" min="72" step="1">
+    </div>
+    <div>
+      <label for="step">라운딩(step)</label>
+      <input id="step" type="number" value="0.5" min="0.1" step="0.1">
+    </div>
+  </div>
+
+  <div class="button-group">
+    <button id="run">Run on selection</button>
+    <button id="clean">Clean Annotations</button>
+  </div>
+
+  <div id="log">1. 변환할 프레임/그룹 1개를 선택하세요.<br>2. 원하는 옵션을 설정 후 'Run'을 누르세요.<br>3. 이름에 추가된 주석은 'Clean'으로 제거할 수 있습니다.</div>
+
+  <script>
+    const dpiSel = document.getElementById('dpiSel');
+    const customDpiWrapper = document.getElementById('customDpiWrapper');
+    const customDpiInput = document.getElementById('customDpi');
+    const stepEl = document.getElementById('step');
+
+    function toggleCustomDpi() {
+      customDpiWrapper.style.display = dpiSel.value === 'custom' ? 'flex' : 'none';
+    }
+
+    dpiSel.onchange = toggleCustomDpi;
+    toggleCustomDpi(); // Initial check
+
+    const log = (m) => document.getElementById('log').textContent = m || '';
+
+    function currentDpi(){
+      return dpiSel.value === 'custom'
+        ? parseFloat(customDpiInput.value || '240') // Default to hdpi if custom is empty
+        : parseFloat(dpiSel.value);
+    }
+
+    document.getElementById('run').onclick = () => {
+      parent.postMessage({
+        pluginMessage:{ type:'run', dpi: currentDpi(), step: parseFloat(stepEl.value||'0.5') }
+      }, '*');
+    };
+
+    document.getElementById('clean').onclick = () => {
+      parent.postMessage({ pluginMessage:{ type:'clean' } }, '*');
+    };
+
+    onmessage = (e) => {
+      const m = e.data?.pluginMessage;
+      if(m?.log) log(m.log);
+    };
+  </script>
+</body>
+</html>

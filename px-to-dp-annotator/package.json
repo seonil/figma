@@ -1,0 +1,14 @@
+{
+  "name": "px-to-dp-annotator",
+  "version": "1.0.0",
+  "description": "A Figma plugin to convert px to dp.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js && nodemon -w src -x \"node build.js\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "nodemon": "^3.1.10"
+  }
+}
