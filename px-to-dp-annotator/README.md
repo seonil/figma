@@ -45,8 +45,8 @@ Figma에서 디자인한 요소의 픽셀(px) 값을 안드로이드 개발에�
     - **Windows:** 프로젝트 폴더 안의 빈 공간에서 `Shift` 키를 누른 상태로 마우스 오른쪽 버튼을 클릭한 후, '여기에 PowerShell 창 열기' 또는 '명령 프롬프트 창 열기'를 선택합니다.
     - **Mac:** `Terminal` 앱을 실행하고, `cd `를 입력한 후(cd와 띄어쓰기), 프로젝트 폴더를 터미널 창 안으로 끌어다 놓은 뒤 Enter 키를 누릅니다.
 3. 터미널에 아래 명령어를 순서대로 한 줄씩 입력하고 Enter 키를 누릅니다.
-    - `` npm install``
-    - ``bash npm run build ``
+    - ``npm install ``
+    - ``npm run build ``
 
 
 **3단계: Figma에서 플러그인 불러오기**
