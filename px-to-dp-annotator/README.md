@@ -51,7 +51,7 @@ Figma에서 디자인한 요소의 픽셀(px) 값을 안드로이드 개발에�
 
 **3단계: Figma에서 플러그인 불러오기**
 
-1. Figma를 열고, 상단 메뉴에서 **Plugins** → **Development** → **Import plugin from manifest...**를 클릭합니다.
+1. Figma를 열고, 상단 메뉴에서 **Plugins** → **Development** → **Import plugin from manifest**...를 클릭합니다.
 2. 파일 탐색기가 열리면, 소스 코드 프로젝트 폴더로 이동하여 `manifest.json` 파일을 선택합니다.
 3. 이제 `Plugins` 메뉴에 `PX to DP Annotator`가 추가되어 사용할 수 있습니다.
 
