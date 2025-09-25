@@ -8,19 +8,34 @@ function pxToDp(px: number, dpi: number, step = 0.5) {
   return roundToStep(px * 160 / dpi, step);
 }
 
-function annotate(node: SceneNode, dpi: number, step: number, out: any[]) {
+const annotationRegex = /\s*\([^)]*\)$/;
+
+function annotate(node: SceneNode, topFrame: SceneNode, dpi: number, step: number, out: any[]) {
   const rec: any = { id: node.id, name: node.name, type: node.type };
   const anyNode = node as any;
 
   const w = anyNode.width as number | undefined;
   const h = anyNode.height as number | undefined;
-  const x = anyNode.x as number | undefined;
-  const y = anyNode.y as number | undefined;
 
   if (isNum(w)) rec.width_dp  = pxToDp(w, dpi, step);
   if (isNum(h)) rec.height_dp = pxToDp(h, dpi, step);
-  if (isNum(x)) rec.x_dp      = pxToDp(x, dpi, step);
-  if (isNum(y)) rec.y_dp      = pxToDp(y, dpi, step);
+
+  // Parent-relative coordinates
+  const x = anyNode.x as number | undefined;
+  const y = anyNode.y as number | undefined;
+  if (isNum(x)) rec.x_dp = pxToDp(x, dpi, step);
+  if (isNum(y)) rec.y_dp = pxToDp(y, dpi, step);
+
+  // Top-frame-relative coordinates
+  if (node.id !== topFrame.id) {
+    const relativeX = node.absoluteTransform[0][2] - topFrame.absoluteTransform[0][2];
+    const relativeY = node.absoluteTransform[1][2] - topFrame.absoluteTransform[1][2];
+    rec.frame_x_dp = pxToDp(relativeX, dpi, step);
+    rec.frame_y_dp = pxToDp(relativeY, dpi, step);
+  } else {
+    rec.frame_x_dp = 0;
+    rec.frame_y_dp = 0;
+  }
 
   const cr = anyNode.cornerRadius as number | undefined;
   if (isNum(cr)) rec.corner_dp = pxToDp(cr, dpi, step);
@@ -34,23 +49,35 @@ function annotate(node: SceneNode, dpi: number, step: number, out: any[]) {
   }
 
   // 이름 주석
-  const bits = [node.name];
-  if (isNum(rec.width_dp) && isNum(rec.height_dp)) bits.push(`(${rec.width_dp}×${rec.height_dp}dp)`);
+  const originalName = node.name.replace(annotationRegex, '').trim();
+  const bits = [originalName];
+  const annotation_parts = [];
+
+  if (isNum(rec.width_dp) && isNum(rec.height_dp)) {
+    annotation_parts.push(`${rec.width_dp}×${rec.height_dp}dp`);
+  }
+
+  if (isNum(rec.frame_x_dp) && isNum(rec.frame_y_dp) && node.id !== topFrame.id) {
+    annotation_parts.push(`@ ${rec.frame_x_dp}, ${rec.frame_y_dp}dp`);
+  }
+
+  if (annotation_parts.length > 0) {
+    bits.push(`(${annotation_parts.join('; ')})`);
+  }
+  
   node.name = bits.join(' ');
 
   out.push(rec);
 }
 
-function walk(node: SceneNode, dpi: number, step: number, out: any[]) {
-  annotate(node, dpi, step, out);
-  if ("children" in node) for (const c of (node as ChildrenMixin).children) walk(c as SceneNode, dpi, step, out);
+function walk(node: SceneNode, topFrame: SceneNode, dpi: number, step: number, out: any[]) {
+  annotate(node, topFrame, dpi, step, out);
+  if ("children" in node) for (const c of (node as ChildrenMixin).children) walk(c as SceneNode, topFrame, dpi, step, out);
 }
 
 figma.showUI(__html__, { width: 300, height: 260 });
 
 let last: any[] = [];
-
-const annotationRegex = /\s*\(\d+(\.\d+)?×\d+(\.\d+)?dp\)$/;
 
 function cleanWalk(node: SceneNode) {
   node.name = node.name.replace(annotationRegex, '').trim();
@@ -71,7 +98,7 @@ figma.ui.onmessage = (msg) => {
     const dpi = Math.max(72, Number(msg.dpi) || 160);
     const step = Math.max(0.1, Number(msg.step) || 0.5);
     last = [];
-    walk(sel[0] as SceneNode, dpi, step, last);
+    walk(sel[0] as SceneNode, sel[0] as SceneNode, dpi, step, last);
     figma.ui.postMessage({ log: `완료: ${last.length}개 노드 변환  •  dpi=${dpi}, step=${step}` });
   }
 

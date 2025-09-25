@@ -10,17 +10,27 @@ function isNum(n) {
 function pxToDp(px, dpi, step = 0.5) {
   return roundToStep(px * 160 / dpi, step);
 }
-function annotate(node, dpi, step, out) {
+var annotationRegex = /\s*\([^)]*\)$/;
+function annotate(node, topFrame, dpi, step, out) {
   const rec = { id: node.id, name: node.name, type: node.type };
   const anyNode = node;
   const w = anyNode.width;
   const h = anyNode.height;
-  const x = anyNode.x;
-  const y = anyNode.y;
   if (isNum(w)) rec.width_dp = pxToDp(w, dpi, step);
   if (isNum(h)) rec.height_dp = pxToDp(h, dpi, step);
+  const x = anyNode.x;
+  const y = anyNode.y;
   if (isNum(x)) rec.x_dp = pxToDp(x, dpi, step);
   if (isNum(y)) rec.y_dp = pxToDp(y, dpi, step);
+  if (node.id !== topFrame.id) {
+    const relativeX = node.absoluteTransform[0][2] - topFrame.absoluteTransform[0][2];
+    const relativeY = node.absoluteTransform[1][2] - topFrame.absoluteTransform[1][2];
+    rec.frame_x_dp = pxToDp(relativeX, dpi, step);
+    rec.frame_y_dp = pxToDp(relativeY, dpi, step);
+  } else {
+    rec.frame_x_dp = 0;
+    rec.frame_y_dp = 0;
+  }
   const cr = anyNode.cornerRadius;
   if (isNum(cr)) rec.corner_dp = pxToDp(cr, dpi, step);
   const sw = anyNode.strokeWeight;
@@ -29,18 +39,27 @@ function annotate(node, dpi, step, out) {
     const fs = node.fontSize;
     if (isNum(fs)) rec.font_sp = pxToDp(fs, dpi, step);
   }
-  const bits = [node.name];
-  if (isNum(rec.width_dp) && isNum(rec.height_dp)) bits.push(`(${rec.width_dp}\xD7${rec.height_dp}dp)`);
+  const originalName = node.name.replace(annotationRegex, "").trim();
+  const bits = [originalName];
+  const annotation_parts = [];
+  if (isNum(rec.width_dp) && isNum(rec.height_dp)) {
+    annotation_parts.push(`${rec.width_dp}\xD7${rec.height_dp}dp`);
+  }
+  if (isNum(rec.frame_x_dp) && isNum(rec.frame_y_dp) && node.id !== topFrame.id) {
+    annotation_parts.push(`@ ${rec.frame_x_dp}, ${rec.frame_y_dp}dp`);
+  }
+  if (annotation_parts.length > 0) {
+    bits.push(`(${annotation_parts.join("; ")})`);
+  }
   node.name = bits.join(" ");
   out.push(rec);
 }
-function walk(node, dpi, step, out) {
-  annotate(node, dpi, step, out);
-  if ("children" in node) for (const c of node.children) walk(c, dpi, step, out);
+function walk(node, topFrame, dpi, step, out) {
+  annotate(node, topFrame, dpi, step, out);
+  if ("children" in node) for (const c of node.children) walk(c, topFrame, dpi, step, out);
 }
 figma.showUI(__html__, { width: 300, height: 260 });
 var last = [];
-var annotationRegex = /\s*\(\d+(\.\d+)?×\d+(\.\d+)?dp\)$/;
 function cleanWalk(node) {
   node.name = node.name.replace(annotationRegex, "").trim();
   if ("children" in node) {
@@ -59,7 +78,7 @@ figma.ui.onmessage = (msg) => {
     const dpi = Math.max(72, Number(msg.dpi) || 160);
     const step = Math.max(0.1, Number(msg.step) || 0.5);
     last = [];
-    walk(sel[0], dpi, step, last);
+    walk(sel[0], sel[0], dpi, step, last);
     figma.ui.postMessage({ log: `\uC644\uB8CC: ${last.length}\uAC1C \uB178\uB4DC \uBCC0\uD658  \u2022  dpi=${dpi}, step=${step}` });
   }
   if (msg.type === "clean") {
